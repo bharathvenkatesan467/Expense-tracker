@@ -1,82 +1,92 @@
+document.getElementById('addExpense').addEventListener('click', addExpense);
+        document.getElementById('filter').addEventListener('change', filterExpenses);
 
-const expenseNameInput = document.getElementById('expense-name');
-const expenseAmountInput = document.getElementById('expense-amount');
-const expenseCategorySelect = document.getElementById('expense-category');
-const expenseDateInput = document.getElementById('expense-date');
-const addExpenseButton = document.getElementById('add-expense-button');
-const expenseTableBody = document.getElementById('expense-table-body');
-const totalAmountElement = document.getElementById('total-amount');
-const categoryFilterSelect = document.getElementById('category-filter');
+        let expenses = [];
+        let editId = null;
 
-let expenses = [];
+        function addExpense() {
+            const expenseName = document.getElementById('expenseName').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const category = document.getElementById('category').value;
+            const date = document.getElementById('date').value;
 
-function addExpense() {
-  const expenseName = expenseNameInput.value;
-  const expenseAmount = parseFloat(expenseAmountInput.value);
-  const expenseCategory = expenseCategorySelect.value;
-  const expenseDate = expenseDateInput.value;
+            if (!expenseName || isNaN(amount) || !category || !date) {
+                alert('Please fill out all fields correctly.');
+                return;
+            }
 
-  if (!expenseName || isNaN(expenseAmount) || expenseAmount <= 0) {
-    alert('Please fill in all fields correctly.');
-    return;
-  }
+            if (editId !== null) {
+                const expense = expenses.find(exp => exp.id === editId);
+                expense.name = expenseName;
+                expense.amount = amount;
+                expense.category = category;
+                expense.date = date;
+                editId = null;
+            } else {
+                const expense = {
+                    name: expenseName,
+                    amount: amount,
+                    category: category,
+                    date: date,
+                    id: Date.now()
+                };
+                expenses.push(expense);
+            }
 
-  const newExpense = {
-    name: expenseName,
-    amount: expenseAmount,
-    category: expenseCategory,
-    date: expenseDate
-  };
+            renderExpenses();
+            calculateTotal();
+            clearInputs();
+        }
 
-  expenses.push(newExpense);
+        function renderExpenses(filteredExpenses = expenses) {
+            const tbody = document.getElementById('expense-table-body');
+            tbody.innerHTML = '';
 
-  renderExpenses();
+            filteredExpenses.forEach(expense => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${expense.name}</td>
+                    <td>$${expense.amount.toFixed(2)}</td>
+                    <td>${expense.category}</td>
+                    <td>${expense.date}</td>
+                    <td>
+                        <button class="btn" onclick="editExpense(${expense.id})">Edit</button>
+                        <button class="btn" onclick="deleteExpense(${expense.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
-  expenseNameInput.value = '';
-  expenseAmountInput.value = '';
-  expenseCategorySelect.value = 'Food';
-  expenseDateInput.value = '';
+        function calculateTotal() {
+            const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
+        }
 
-  updateTotalAmount();
-}
+        function deleteExpense(id) {
+            expenses = expenses.filter(expense => expense.id !== id);
+            renderExpenses();
+            calculateTotal();
+        }
 
-function renderExpenses() {
-  expenseTableBody.innerHTML = '';
+        function editExpense(id) {
+            const expense = expenses.find(exp => exp.id === id);
+            document.getElementById('expenseName').value = expense.name;
+            document.getElementById('amount').value = expense.amount;
+            document.getElementById('category').value = expense.category;
+            document.getElementById('date').value = expense.date;
+            editId = id;
+        }
 
-  const filteredExpenses = categoryFilterSelect.value === 'all' ? expenses : expenses.filter(expense => expense.category === categoryFilterSelect.value);
+        function clearInputs() {
+            document.getElementById('expenseName').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('date').value = '';
+        }
 
-  filteredExpenses.forEach(expense => {
-    const row = expenseTableBody.insertRow();
-    const nameCell = row.insertCell();
-    const amountCell = row.insertCell();
-    const categoryCell = row.insertCell();
-    const dateCell = row.insertCell();
-    const actionCell = row.insertCell();
-
-    nameCell.textContent = expense.name;
-    amountCell.textContent = '$' + expense.amount.toFixed(2);
-    categoryCell.textContent = expense.category;
-    dateCell.textContent = expense.date;
-
-    const editButton = document.createElement('button');
-    editButton.textContent = 'Edit';
-
-    const deleteButton = document.createElement('button');
-    deleteButton.textContent = 'Delete';
-
-    actionCell.appendChild(editButton);
-    actionCell.appendChild(deleteButton);
-  });
-}
-
-function updateTotalAmount() {
-  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  totalAmountElement.textContent = '$' + totalAmount.toFixed(2);
-}
-
-addExpenseButton.addEventListener('click', addExpense);
-
-categoryFilterSelect.addEventListener('change', renderExpenses);
-
-renderExpenses();
-updateTotalAmount();
+        function filterExpenses() {
+            const filter = document.getElementById('filter').value;
+            const filteredExpenses = filter === 'All' ? expenses : expenses.filter(expense => expense.category === filter);
+            renderExpenses(filteredExpenses);
+        }
